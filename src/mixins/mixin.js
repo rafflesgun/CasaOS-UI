@@ -3,7 +3,51 @@ import has from 'lodash/has'
 import union from 'lodash/union'
 import copy from 'clipboard-copy'
 import dayjs from 'dayjs'
+import mime from 'mime'
 import { renderSize } from './file_utils'
+
+export function getEditorMode(ext) {
+	const lowerExt = ext.toLowerCase()
+	let mode = mime.getType(lowerExt) == null ? 'text/javascript' : mime.getType(lowerExt)
+
+	if (lowerExt == 'makefile') {
+		mode = 'text/x-cmake'
+	} else if (lowerExt == 'py') {
+		mode = 'text/x-python'
+	} else if (lowerExt == 'go') {
+		mode = 'text/x-go'
+	} else if (lowerExt == 'vue') {
+		mode = 'text/x-vue'
+	} else if (lowerExt == 'md') {
+		mode = 'text/x-markdown'
+	} else if (lowerExt == 'jsonl') {
+		mode = 'text/plain'
+	}
+
+	return mode
+}
+
+export function formatEditorContent(ext, data) {
+	if (ext.toLowerCase() == 'jsonl') {
+		if (typeof data === 'string') {
+			return data
+		}
+
+		if (Array.isArray(data)) {
+			return data.map(item => JSON.stringify(item)).join('\n')
+		}
+
+		if (typeof data === 'object' && data !== null) {
+			return JSON.stringify(data)
+		}
+
+		return String(data)
+	}
+
+	return typeof data === 'object'
+		? JSON.stringify(data, null, 2)
+		: String(data)
+}
 
 const typeMap = {
 	"image-x-generic": ['png', 'jpg', 'jpeg', 'bmp', 'gif', 'webp', 'svg', 'tiff'],
@@ -32,7 +76,7 @@ const hasThumbImageType = ['png', 'jpg', 'jpeg', 'bmp', 'gif', 'webp', 'svg']
 
 // eslint-disable-next-line no-unused-vars
 const filePanelMap = {
-	'code-editor': union(typeMap['text-x-generic'], typeMap['text-css'], typeMap['text-html'], typeMap['text-x-cmake'], typeMap['text-dockerfile']),
+	'code-editor': union(typeMap['text-x-generic'], typeMap['text-css'], typeMap['text-html'], typeMap['text-x-cmake'], typeMap['text-dockerfile'], typeMap['text-markdown'], ['jsonl']),
 	"video-player": union(typeMap['video-x-generic'], typeMap['audio-x-generic']),
 	"image-viewer": typeMap['image-x-generic'],
 	"doc-viewer": union(typeMap['application-vnd.ms-word']),
@@ -40,6 +84,21 @@ const filePanelMap = {
 	// "mark-down-editor":typeMap['text-markdown'],
 	"pdf-viewer": typeMap['application-pdf'],
 }
+
+export function getFilePanelType(name) {
+	const ext = name.substring(name.lastIndexOf('.') + 1).toLowerCase()
+	let type = null
+
+	Object.keys(filePanelMap).forEach((_type) => {
+		const extensions = filePanelMap[_type]
+		if (extensions.indexOf(ext) > -1) {
+			type = _type
+		}
+	})
+
+	return type
+}
+
 export const wallpaperType = ['png', 'jpg', 'jpeg', 'bmp', 'gif', 'svg']
 const wallpaperConfig = "wallpaper"
 
@@ -125,15 +184,7 @@ export const mixin = {
 			return require(`@/assets/img/filebrowser/${icon}.svg`)
 		},
 		getPanelType(item) {
-			const ext = this.getFileExt(item);
-			let type = null
-			Object.keys(filePanelMap).forEach((_type) => {
-				const extensions = filePanelMap[_type]
-				if (extensions.indexOf(ext.toLowerCase()) > -1) {
-					type = _type
-				}
-			})
-			return type
+			return getFilePanelType(item.name)
 		},
 		getFileExt(item) {
 			return item.name.substring(item.name.lastIndexOf('.') + 1);
