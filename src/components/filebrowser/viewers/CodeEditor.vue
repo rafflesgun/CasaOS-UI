@@ -46,9 +46,7 @@
 
 <script>
 
-import { mixin } from '@/mixins/mixin';
-
-import mime from 'mime'
+import { formatEditorContent, getEditorMode, mixin } from '@/mixins/mixin';
 // Core
 import { codemirror } from 'vue-codemirror'
 import 'codemirror/lib/codemirror.css'
@@ -210,21 +208,10 @@ export default {
 		},
 		readFile() {
 			let ext = this.getFileExt(this.item)
-			let mode = mime.getType(ext) == null ? "text/javascript" : mime.getType(ext)
-			if (ext.toLowerCase() == "makefile") {
-				mode = 'text/x-cmake'
-			} else if (ext.toLowerCase() == "py") {
-				mode = 'text/x-python'
-			} else if (ext.toLowerCase() == "go") {
-				mode = 'text/x-go'
-			} else if (ext.toLowerCase() == "vue") {
-				mode = 'text/x-vue'
-			}
+			let mode = getEditorMode(ext)
 			this.codemirror.setOption("mode", mode);
 			this.$api.file.download(this.item.path).then(res => {
-				this.code = typeof res.data === 'object'
-					? JSON.stringify(res.data, null, 2)
-					: String(res.data)
+				this.code = formatEditorContent(ext, res.data)
 				this.$nextTick(() => {
 					this.isChange = false
 				})
