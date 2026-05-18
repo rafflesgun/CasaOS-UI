@@ -33,6 +33,7 @@ const state = {
   operateObject: null,
   currentPath: '',
   isViewGird: true,
+  showHiddenFiles: localStorage.getItem('showHiddenFiles') === 'true',
 
   // Wallpaper
   wallpaperObject: {

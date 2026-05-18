@@ -58,9 +58,34 @@ describe('FilePanel showDetailModal', () => {
 		expect(open).not.toHaveBeenCalled()
 	})
 
-	test('opens the detail modal for unsupported files', () => {
+	test('opens unknown text files in the code editor by default', () => {
 		const open = vi.fn()
-		const item = { name: 'archive.bin', path: '/DATA/archive.bin' }
+		const item = { name: 'config.unknown', path: '/DATA/config.unknown' }
+		const ctx = {
+			isModalOpen: false,
+			panelType: null,
+			currentItem: null,
+			isShowDetial: false,
+			getFileExt: FilePanel.mixins[0].methods.getFileExt,
+			getPanelType: FilePanel.mixins[0].methods.getPanelType,
+			$buefy: {
+				modal: {
+					open,
+				},
+			},
+		}
+
+		FilePanel.methods.showDetailModal.call(ctx, item)
+
+		expect(ctx.panelType).toBe('code-editor')
+		expect(ctx.currentItem).toEqual(item)
+		expect(ctx.isShowDetial).toBe(true)
+		expect(open).not.toHaveBeenCalled()
+	})
+
+	test('opens the detail modal for binary files', () => {
+		const open = vi.fn()
+		const item = { name: 'archive.zip', path: '/DATA/archive.zip' }
 		const ctx = {
 			isModalOpen: false,
 			panelType: null,

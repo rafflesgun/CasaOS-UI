@@ -8,9 +8,9 @@ import { renderSize } from './file_utils'
 
 export function getEditorMode(ext) {
 	const lowerExt = ext.toLowerCase()
-	let mode = mime.getType(lowerExt) == null ? 'text/javascript' : mime.getType(lowerExt)
+	let mode = mime.getType(lowerExt) == null ? 'text/plain' : mime.getType(lowerExt)
 
-	if (lowerExt == 'makefile') {
+	if (lowerExt == 'makefile' || lowerExt == 'dockerfile') {
 		mode = 'text/x-cmake'
 	} else if (lowerExt == 'py') {
 		mode = 'text/x-python'
@@ -22,6 +22,20 @@ export function getEditorMode(ext) {
 		mode = 'text/x-markdown'
 	} else if (lowerExt == 'jsonl') {
 		mode = 'text/plain'
+	} else if (['bashrc', 'zshrc', 'bash_profile', 'zprofile', 'profile', 'bash_aliases', 'sh', 'bash', 'zsh', 'ksh', 'csh', 'tcsh'].includes(lowerExt)) {
+		mode = 'text/x-sh'
+	} else if (['gitignore', 'dockerignore', 'npmignore', 'eslintignore', 'prettierignore'].includes(lowerExt)) {
+		mode = 'text/plain'
+	} else if (['env', 'env.local', 'env.production', 'env.development', 'env.staging'].includes(lowerExt) || lowerExt.startsWith('env.')) {
+		mode = 'text/x-sh'
+	} else if (['yml', 'yaml'].includes(lowerExt)) {
+		mode = 'text/yaml'
+	} else if (['json'].includes(lowerExt)) {
+		mode = 'application/json'
+	} else if (['xml', 'svg', 'htm', 'html'].includes(lowerExt)) {
+		mode = 'text/html'
+	} else if (['css', 'scss', 'sass', 'less'].includes(lowerExt)) {
+		mode = 'text/css'
 	}
 
 	return mode
@@ -53,7 +67,7 @@ const typeMap = {
 	"image-x-generic": ['png', 'jpg', 'jpeg', 'bmp', 'gif', 'webp', 'svg', 'tiff'],
 	"video-x-generic": ['mkv', 'mp4', '3gp', 'avi', 'm2ts', 'webm', 'flv', 'vob', 'ts', 'mts', 'mov', 'wmv', 'rm', 'rmvb', 'asf', 'wmv', 'mpg', 'm4v', 'mpeg', 'f4v'],
 	"audio-x-generic": ['aac', 'aiff', 'alac', 'amr', 'ape', 'flac', 'm4a', 'mp3', 'ogg', 'opus', 'wma', 'wav'],
-	"text-x-generic": ['txt', 'log', 'pages', 'conf', 'config', 'list', 'ini', 'toml', 'cfg', 'rc', 'env', 'service', 'conf.d', 'htaccess', 'gitconfig', 'vim', 'curlrc', 'wgetrc', 'gitignore'],
+	"text-x-generic": ['txt', 'log', 'pages', 'conf', 'config', 'list', 'ini', 'toml', 'cfg', 'rc', 'env', 'service', 'conf.d', 'htaccess', 'gitconfig', 'vim', 'curlrc', 'wgetrc', 'gitignore', 'bashrc', 'zshrc', 'bash_profile', 'zprofile', 'profile', 'bash_aliases', 'bash_history', 'zsh_history', 'npmrc', 'nodenv', 'nvmrc', 'eslintrc', 'prettierrc', 'editorconfig', 'stylelintrc', 'babelrc', 'rsync', 'sqliterc', 'psqlrc', 'inputrc', 'wgetrc', 'netrc', 'signature', 'muttrc', 'pem', 'crt', 'ca-bundle', 'p7b', 'p7s', 'der', 'cer', 'pfx', 'p12', 'key', 'pub'],
 	"text-markdown": ['md'],
 	"text-css": ['php', 'css', 'less', 'scss', 'sass', 'aspx', 'lua', 'vue', 'js', 'go', 'asp', 'bat', 'c', 'cpp', 'cs', 'json', 'py', 'perl', 'sh', 'xml', 'yaml', 'vb', 'vbs', 'sql', 'swift', 'rust', 'rs', 'jsp', 'yml', 'r', 'pl', 'rb', 'src', 'h', 'tex', 'rtf', 'jsonld', 'ttl', 'n3', 'rss', 'atom', 'srt', 'ass', 'tsv', 'vcard', 'asc', 'url', 'diff', 'plaintext'],
 	"text-html": ['html', 'htm', 'shtml', 'shtm'],
@@ -74,6 +88,28 @@ const typeMap = {
 }
 const hasThumbImageType = ['png', 'jpg', 'jpeg', 'bmp', 'gif', 'webp', 'svg']
 
+const binaryTypeKeys = [
+	'image-x-generic',
+	'video-x-generic',
+	'audio-x-generic',
+	'application-vnd.ms-word',
+	'application-vnd.ms-excel',
+	'application-vnd.ms-powerpoint',
+	'application-pdf',
+	'application-photoshop',
+	'application-illustrator',
+	'application-x-wine-extension-cpl',
+	'application-apk',
+	'application-x-zip',
+	'application-x-cd-image',
+	'application-x-apple',
+]
+
+const binaryExtensions = new Set()
+binaryTypeKeys.forEach(key => {
+	typeMap[key].forEach(ext => binaryExtensions.add(ext))
+})
+
 // eslint-disable-next-line no-unused-vars
 const filePanelMap = {
 	'code-editor': union(typeMap['text-x-generic'], typeMap['text-css'], typeMap['text-html'], typeMap['text-x-cmake'], typeMap['text-dockerfile'], typeMap['text-markdown'], ['jsonl']),
@@ -86,7 +122,9 @@ const filePanelMap = {
 }
 
 export function getFilePanelType(name) {
-	const ext = name.substring(name.lastIndexOf('.') + 1).toLowerCase()
+	const lastDotIndex = name.lastIndexOf('.')
+	const lastSlashIndex = name.lastIndexOf('/')
+	const ext = lastDotIndex > lastSlashIndex ? name.substring(lastDotIndex + 1).toLowerCase() : ''
 	let type = null
 
 	Object.keys(filePanelMap).forEach((_type) => {
@@ -95,6 +133,10 @@ export function getFilePanelType(name) {
 			type = _type
 		}
 	})
+
+	if (type === null && !binaryExtensions.has(ext)) {
+		type = 'code-editor'
+	}
 
 	return type
 }
